@@ -2,6 +2,8 @@ import argparse
 import os
 from urllib.request import urlopen
 from urllib.parse import urlparse
+from urllib.parse import ParseResult
+from urllib.error import HTTPError
 
 
 def parse_arguments():
@@ -21,35 +23,77 @@ def parse_arguments():
     
     return args
 
+def find_tag_and_attribute(html: str, tag: str, attribute: str, start_index: int):
+   start_index = html.find("<" + tag, start_index)
+   if (start_index == -1):
+    return "", 0
+   start_index = html.find(attribute + "=", start_index)
+   start_index = len(attribute + "=") + start_index
+   end_index = html.find(">", start_index)
+   temp_index = html.find(" ", start_index, end_index)
+   if (temp_index != -1):
+      end_index = temp_index
+   # print(html[start_index:end_index].strip("\""))
+   return html[start_index:end_index].strip("\""), start_index
 
-def scrape_page(url: str):
-   url = urlparse(url)
-   page = urlopen(url.geturl())
+def change_url(url: ParseResult, img_url: str):
+   img_url = img_url.strip("../")
+   if (img_url[0] != "/"):
+      img_url = "/" + img_url
+   img_url = url.scheme + "://" + url.hostname + img_url
+   return img_url
+   
 
-   html_bytes = page.read()
-   html = html_bytes.decode("utf-8")
+def scrape_page(url: ParseResult, html: str):
    start_index = 0
    while (True):
-    start_index = html.find("<img", start_index)
-    if (start_index == -1):
-       break
-    start_index = html.find("src=\"", start_index)
-    start_index = len("src=\"") + start_index
-    end_index = html.find("\"", start_index)
-    img_url = html[start_index:end_index]
+    img_url, start_index = find_tag_and_attribute(html, "img", "src", start_index)
+    if (img_url == ""):
+        break
+    if (img_url.find("http") == -1):
+      img_url = change_url(url, img_url)
     upload_file_path = args.path + img_url[img_url.rfind("/") + 1:]
-    print(upload_file_path)
     if (os.path.isfile(upload_file_path)):
        continue
     with open(upload_file_path, "wb") as file:
-        page = urlopen(url.scheme + "://" + url.hostname + img_url)
+        page = urlopen(img_url)
         file.write(page.read())
 
 miep = set()
 
+def crawl_page(url: str, length: int):
+   
+   miep.add(url)
+   print(url)
+   parsed_url = urlparse(url)
+   try:
+      page = urlopen(parsed_url.geturl())
+      html_bytes = page.read()
+      html = html_bytes.decode("utf-8")
+      start_index = 0
+      while (True):
+         a_url, start_index = find_tag_and_attribute(html, "a", "href", start_index)
+         if (a_url == ""):
+            break
+         print("before " + a_url) 
+         if (a_url.find("http") == -1):   
+            a_url = change_url(parsed_url, a_url)
+         print("after " + a_url) 
+         if (length > 0 and a_url not in miep): 
+            crawl_page(a_url, length - 1)
+         scrape_page(parsed_url, html)
+   except HTTPError as e:
+      if e.code == 308:
+         redirected_url = e.headers["location"]
+         print(f"Redirected to {redirected_url}")
+         if (length > 0 and a_url not in miep): 
+            crawl_page(redirected_url, length)
+      else:
+         raise
+
 if __name__ == "__main__":
    args = parse_arguments()
-   scrape_page(args.URL)
+   crawl_page(args.URL, args.length)
    
 
 
