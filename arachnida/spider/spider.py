@@ -20,7 +20,8 @@ def parse_arguments():
         parser.error("The --length argument requires that the flag --recursive is set")
     if (args.length == None):
         args.length = 5; # Default length
-    
+    if (args.path[-1] != "/"):
+        args.path = args.path + "/"
     return args
 
 def find_tag_and_attribute(html: str, tag: str, attribute: str, start_index: int):
@@ -53,6 +54,7 @@ def scrape_page(url: ParseResult, html: str):
     if (img_url.find("http") == -1):
       img_url = change_url(url, img_url)
     upload_file_path = args.path + img_url[img_url.rfind("/") + 1:]
+    print(upload_file_path)
     if (upload_file_path.find("?") != -1):
        upload_file_path = upload_file_path[:upload_file_path.find("?")]
     if (os.path.isfile(upload_file_path) or img_url.endswith((".jpg", ".jpeg", ".png", ".gif" ".bmp")) == False):
@@ -88,8 +90,7 @@ def crawl_page(url: str, length: int):
       if e.code == 308 or e.code == 302:
          redirected_url = e.headers["location"]
          print(f"Redirected to {redirected_url}")
-         if (length > 0 and a_url not in miep): 
-            crawl_page(redirected_url, length)
+         crawl_page(redirected_url, length)
       if e.code == 404:
          print(f"Site Not Found! {url}")
       else:
@@ -97,7 +98,7 @@ def crawl_page(url: str, length: int):
 
 if __name__ == "__main__":
    args = parse_arguments()
-   crawl_page(args.URL, args.length)
-   
-
-
+   if (args.recursive):
+      crawl_page(args.URL, args.length) # Run the program recursively depth level args.length
+   else:
+      crawl_page(args.URL, 0) # Run the program not recursive
