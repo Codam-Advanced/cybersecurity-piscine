@@ -6,13 +6,18 @@ def extract_file_data(files: list[str]):
     for file in files:
         image = Image.open(file)
         exif_data = image.getexif().items()
-        print(f"|               The Image - [{image.filename}] -            |")
-        print(f"| The Image Format	    - [{image.format}]	              |")
-        print(f"| The Image Size	    - W [{image.width}] H [{image.height}]	      |")
+
+        print("\n\n+" + "-"*70 + "+")
+        print("|{:^70}|".format(f"The Image - [{image.filename}]"))
+        print("+" + "-"*70 + "+")
+        print((f"| The Image Format	    - [{image.format}]").ljust(50) + "|")
+        print((f"| The Image Size	    - W [{image.width}] H [{image.height}]").ljust(48) + "|")
+
         for key, val in exif_data:
             if ExifTags.TAGS[key] != "DateTime":
                         continue
-            print(f"| The Image Creation date   - [{val}]   |")
+            print((f"| The Image Creation date   - [{val}]").ljust(55) + "|")
+
         print("\n[EXIF_DATA]:")
         if not exif_data:
             print("Sorry, image has no exif data.")
@@ -23,9 +28,7 @@ def extract_file_data(files: list[str]):
                         continue
                     print(f"[{ExifTags.TAGS[key]}]:({val})")
                 else:
-                    print(f"[{key}]:({val})")
-        print("---------------------------")
-                
+                    print(f"[{key}]:({val})")         
 
 if "__main__" == __name__:
     parser = argparse.ArgumentParser()
