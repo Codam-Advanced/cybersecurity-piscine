@@ -66,7 +66,6 @@ def scrape_page(url: ParseResult, html: str):
 miep = set()
 
 def crawl_page(url: str, length: int):
-   print("Length = " + str(length), url) 
    miep.add(url)
    print(miep)
    parsed_url = urlparse(url)
@@ -75,6 +74,7 @@ def crawl_page(url: str, length: int):
       html_bytes = page.read()
       html = html_bytes.decode("utf-8")
       start_index = 0
+
       while (True):
          a_url, start_index = find_tag_and_attribute(html, "a", "href", start_index)
          if (a_url == ""):
@@ -85,7 +85,9 @@ def crawl_page(url: str, length: int):
             continue
          if (length > 0 and a_url.endswith(".zip") == False): 
             crawl_page(a_url, length - 1)
+
       scrape_page(parsed_url, html)
+
    except HTTPError as e:
       if e.code == 308 or e.code == 302:
          redirected_url = e.headers["location"]

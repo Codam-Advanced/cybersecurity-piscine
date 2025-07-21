@@ -10,6 +10,7 @@ def extract_file_data(files: list[str]):
         print("\n\n+" + "-"*70 + "+")
         print("|{:^70}|".format(f"The Image - [{image.filename}]"))
         print("+" + "-"*70 + "+")
+        print("0" + "="*54 + "0" )
         print((f"| The Image Format	    - [{image.format}]").ljust(50) + "|")
         print((f"| The Image Size	    - W [{image.width}] H [{image.height}]").ljust(48) + "|")
 
@@ -17,7 +18,7 @@ def extract_file_data(files: list[str]):
             if ExifTags.TAGS[key] != "DateTime":
                         continue
             print((f"| The Image Creation date   - [{val}]").ljust(55) + "|")
-
+        print("0" + "="*54 + "0" )
         print("\n[EXIF_DATA]:")
         if not exif_data:
             print("Sorry, image has no exif data.")
