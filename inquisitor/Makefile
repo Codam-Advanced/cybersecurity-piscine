@@ -18,11 +18,16 @@ build:
 	@echo "Server MAC: $$(grep SERVERMAC .env | cut -d '=' -f2)"
 
 	# Pass variables to arp_spoofer
-	docker compose --env-file .env up --build arp_spoofer
+	docker compose --env-file .env up --build -d arp_spoofer
 
 re:
 	docker compose down
 	$(MAKE) build
 
 spoofer:
+	@echo 'python3 inquisitor.py $$CLIENTIP $$CLIENTMAC $$SERVERIP $$SERVERMAC' | xclip -selection c
+	@echo "Command copied to clipboard. Paste it inside the arp_spoofer container."
 	docker exec -it arp_spoofer /bin/bash
+
+arp_tables:
+	docker exec -it client /bin/bash -c "ip neigh"

