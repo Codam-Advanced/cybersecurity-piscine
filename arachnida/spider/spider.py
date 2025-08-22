@@ -74,7 +74,6 @@ def crawl_page(url: str, length: int):
       html_bytes = page.read()
       html = html_bytes.decode("utf-8")
       start_index = 0
-
       while (True):
          a_url, start_index = find_tag_and_attribute(html, "a", "href", start_index)
          if (a_url == ""):
